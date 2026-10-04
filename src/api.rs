@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::time::SystemTime;
 use ureq::Agent;
+use ureq::tls::{TlsConfig, TlsProvider};
 
 const REDIRECT_URI: &str = "urn:ietf:wg:oauth:2.0:oob";
 const SCOPES: &str = "read write";
@@ -58,6 +59,11 @@ pub fn parse_time(s: &str) -> Result<SystemTime, String> {
 impl Client {
     pub fn new(domain: &str, token: Option<String>) -> Self {
         let agent: Agent = Agent::config_builder()
+            .tls_config(
+                TlsConfig::builder()
+                    .provider(TlsProvider::NativeTls)
+                    .build(),
+            )
             .user_agent(concat!("post_cards/", env!("CARGO_PKG_VERSION")))
             .build()
             .into();
