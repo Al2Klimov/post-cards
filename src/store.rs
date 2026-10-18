@@ -9,12 +9,6 @@ pub struct Credentials {
     pub access_token: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
-pub struct Cache {
-    pub interval_secs: Option<u64>,
-    pub avg_batch: Option<f64>,
-}
-
 fn dir() -> Option<PathBuf> {
     if let Some(x) = std::env::var_os("XDG_CONFIG_HOME").filter(|x| !x.is_empty()) {
         return Some(PathBuf::from(x).join("post_cards"));
@@ -50,12 +44,4 @@ pub fn load_credentials() -> Option<Credentials> {
 
 pub fn save_credentials(c: &Credentials) -> Result<(), String> {
     save("credentials.json", c)
-}
-
-pub fn load_cache() -> Cache {
-    load("cache.json").unwrap_or_default()
-}
-
-pub fn save_cache(c: &Cache) -> Result<(), String> {
-    save("cache.json", c)
 }

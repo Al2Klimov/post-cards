@@ -146,8 +146,9 @@ impl Client {
         self.account_id().map(|_| ())
     }
 
-    /// Latest of the newest published post and all scheduled posts.
-    pub fn last_post_time(&self) -> Result<Option<SystemTime>, String> {
+    /// Latest of the newest published post and all scheduled posts,
+    /// plus the number of scheduled (not yet published) posts.
+    pub fn queue(&self) -> Result<(Option<SystemTime>, usize), String> {
         let id = self.account_id()?;
         let statuses: Vec<Status> = self
             .agent
@@ -179,7 +180,7 @@ impl Client {
             let t = parse_time(t)?;
             max = max.max(Some(t));
         }
-        Ok(max)
+        Ok((max, scheduled.len()))
     }
 
     pub fn post(&self, text: &str, at: Option<SystemTime>) -> Result<(), String> {
