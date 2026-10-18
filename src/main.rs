@@ -105,12 +105,22 @@ fn run() -> Result<(), String> {
         };
         let text = input::compose_post(row, &address);
         println!("\n{text}\n");
-        if !yes_no(&mut stdin, "Post this?")? {
+        let now = SystemTime::now();
+        let at = schedule::next_time(now, last, x);
+        let when = match at {
+            Some(t) => {
+                let dt = humantime::format_rfc3339_seconds(t);
+                match last.and_then(|l| t.duration_since(l).ok()) {
+                    Some(d) => format!("{dt} (+{})", humantime::format_duration(d)),
+                    None => dt.to_string(),
+                }
+            }
+            None => "now".to_string(),
+        };
+        if !yes_no(&mut stdin, &format!("Post this at {when}?"))? {
             addresses.push(address);
             continue;
         }
-        let now = SystemTime::now();
-        let at = schedule::next_time(now, last, x);
         client.post(&text, at)?;
         last = Some(at.unwrap_or(now));
         posted += 1;
