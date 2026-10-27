@@ -5,7 +5,7 @@ mod store;
 mod translit;
 
 use std::io::{BufRead, Write};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 fn prompt(stdin: &mut impl BufRead, msg: &str) -> Result<String, String> {
     print!("{msg}");
@@ -72,10 +72,6 @@ fn read_addresses(stdin: &mut impl BufRead) -> Result<Vec<String>, String> {
 fn run() -> Result<(), String> {
     let mut stdin = std::io::stdin().lock();
     let client = login(&mut stdin)?;
-    let mut cache = store::load_cache();
-    let x = cache
-        .interval_secs
-        .map_or(schedule::DEFAULT_X, Duration::from_secs);
 
     println!("Paste tab-separated rows, end with a single \".\" line:");
     let lines = input::read_block(&mut stdin).map_err(|e| e.to_string())?;
@@ -84,8 +80,8 @@ fn run() -> Result<(), String> {
         return Err("no rows found".into());
     }
     let mut addresses = read_addresses(&mut stdin)?;
-    let mut last = client.last_post_time()?;
-    let mut posted = 0;
+    let (mut last, scheduled) = client.queue()?;
+    let x = schedule::interval_for(scheduled + rows.len());
 
     for row in &rows {
         println!("\n=== {} ===", row.name);
@@ -123,19 +119,12 @@ fn run() -> Result<(), String> {
         }
         client.post(&text, at)?;
         last = Some(at.unwrap_or(now));
-        posted += 1;
         match at {
             Some(t) => println!("Scheduled for {}", humantime::format_rfc3339_seconds(t)),
             None => println!("Posted."),
         }
     }
 
-    if posted > 0 {
-        let avg = schedule::update_avg(cache.avg_batch, posted);
-        cache.avg_batch = Some(avg);
-        cache.interval_secs = Some(schedule::interval_for(avg).as_secs());
-        store::save_cache(&cache)?;
-    }
     Ok(())
 }
 
