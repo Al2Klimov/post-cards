@@ -1,3 +1,4 @@
+use percent_encoding_rfc3986::{NON_ALPHANUMERIC, utf8_percent_encode};
 use std::io::BufRead;
 
 pub struct Row {
@@ -114,9 +115,15 @@ pub fn compose_post(row: &Row, address: &str) -> String {
         [family, given, ..] => format!("{given} {family}"),
         _ => t.clone(),
     };
+    let q = row
+        .name
+        .split_whitespace()
+        .map(|w| utf8_percent_encode(w, NON_ALPHANUMERIC).to_string())
+        .collect::<Vec<_>>()
+        .join("+");
     let ua = if row.ukraine { " #Ukraine" } else { "" };
     format!(
-        "Join me and wish {name}, #politicalPrisoner of #Russia, a #happyBirthday! ({} {}){ua}\n\nYou can e.g send a postcard to this address, like I did:\n\n{address}",
+        "Join me and wish {name}, #politicalPrisoner of #Russia, a #happyBirthday! ({} {}){ua}\n\nYou can e.g send a postcard to this address, like I did:\n\n{address}\n\nLearn more about {name}:\nhttps://memopzk.org/search/?q={q}",
         MONTHS[row.month as usize - 1],
         row.day
     )
@@ -168,6 +175,7 @@ mod tests {
         };
         let p = compose_post(&r, "ADDR");
         assert!(p.starts_with("Join me and wish Georgiy Azat'yan, #politicalPrisoner of #Russia, a #happyBirthday! (Oct 10) #Ukraine\n\n"));
-        assert!(p.ends_with("like I did:\n\nADDR"));
+        assert!(p.contains("like I did:\n\nADDR\n\nLearn more about Georgiy Azat'yan:\n"));
+        assert!(p.ends_with("?q=%D0%90%D0%B7%D0%B0%D1%82%D1%8C%D1%8F%D0%BD+%D0%93%D0%B5%D0%BE%D1%80%D0%B3%D0%B8%D0%B9+%D0%A1%D0%B0%D0%BC%D0%B2%D0%B5%D0%BB%D0%BE%D0%B2%D0%B8%D1%87"));
     }
 }
