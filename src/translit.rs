@@ -68,12 +68,14 @@ const TABLE: &[(char, &str)] = &[
 ];
 
 pub fn transliterate(s: &str) -> String {
-    s.chars()
-        .map(|c| match TABLE.iter().find(|(from, _)| *from == c) {
-            Some((_, to)) => to.to_string(),
-            None => c.to_string(),
-        })
-        .collect()
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match TABLE.iter().find(|(from, _)| *from == c) {
+            Some((_, to)) => out.push_str(to),
+            None => out.push(c),
+        }
+    }
+    out
 }
 
 #[cfg(test)]
