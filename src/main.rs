@@ -40,7 +40,7 @@ fn login(stdin: &mut impl BufRead) -> Result<api::Client, String> {
         }
         println!("Stored login is no longer valid.");
     }
-    let domain = api::normalize_domain(&prompt(stdin, "GoToSocial domain: ")?);
+    let domain = api::normalize_domain(&prompt(stdin, "Mastodon-compatible server domain: ")?);
     let client = api::Client::new(&domain, None);
     let mut creds = client.register(&domain)?;
     println!(

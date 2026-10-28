@@ -204,8 +204,8 @@ mod tests {
     #[test]
     fn domain() {
         assert_eq!(
-            normalize_domain(" https://gts.example.org/ "),
-            "gts.example.org"
+            normalize_domain(" https://social.example.org/ "),
+            "social.example.org"
         );
     }
 
