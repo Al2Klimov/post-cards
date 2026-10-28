@@ -24,14 +24,21 @@ fn save<T: Serialize>(name: &str, v: &T) -> Result<(), String> {
     std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
     let p = d.join(name);
     let data = serde_json::to_vec_pretty(v).map_err(|e| e.to_string())?;
-    std::fs::write(&p, data).map_err(|e| e.to_string())?;
+    let mut o = std::fs::OpenOptions::new();
+    o.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        o.mode(0o600);
+    }
+    let mut f = o.open(&p).map_err(|e| e.to_string())?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o600))
+        f.set_permissions(std::fs::Permissions::from_mode(0o600))
             .map_err(|e| e.to_string())?;
     }
-    Ok(())
+    std::io::Write::write_all(&mut f, &data).map_err(|e| e.to_string())
 }
 
 fn load<T: for<'a> Deserialize<'a>>(name: &str) -> Option<T> {
