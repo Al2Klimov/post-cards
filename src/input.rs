@@ -111,9 +111,16 @@ const MONTHS: [&str; 12] = [
 pub fn compose_post(row: &Row, address: &str) -> String {
     let t = crate::translit::transliterate(&row.name);
     let parts: Vec<&str> = t.split_whitespace().collect();
-    let name = match parts.as_slice() {
-        [family, given, ..] => format!("{given} {family}"),
-        _ => t.clone(),
+    let (name, full_name) = match parts.as_slice() {
+        [family, given, patronymic, ..] => {
+            let initial = patronymic.chars().next().unwrap_or_default();
+            (
+                format!("{given} {family}"),
+                format!("{given} {initial}. {family}"),
+            )
+        }
+        [family, given] => (format!("{given} {family}"), format!("{given} {family}")),
+        _ => (t.clone(), t.clone()),
     };
     let q = row
         .name
@@ -123,7 +130,7 @@ pub fn compose_post(row: &Row, address: &str) -> String {
         .join("+");
     let ua = if row.ukraine { " #Ukraine" } else { "" };
     format!(
-        "Join me and wish {name}, #politicalPrisoner of #Russia, a #happyBirthday! ({} {}){ua}\n\nYou can e.g send a postcard to this address, like I did:\n\n{address}\n\nLearn more about {name}:\nhttps://memopzk.org/search/?q={q}",
+        "Join me and wish {full_name}, #politicalPrisoner of #Russia, a #happyBirthday! ({} {}){ua}\n\nYou can e.g send a postcard to this address, like I did:\n\n{address}\n\nLearn more about {name}:\nhttps://memopzk.org/search/?q={q}",
         MONTHS[row.month as usize - 1],
         row.day
     )
@@ -174,8 +181,41 @@ mod tests {
             ukraine: true,
         };
         let p = compose_post(&r, "ADDR");
-        assert!(p.starts_with("Join me and wish Georgiy Azat'yan, #politicalPrisoner of #Russia, a #happyBirthday! (Oct 10) #Ukraine\n\n"));
+        assert!(p.starts_with("Join me and wish Georgiy S. Azat'yan, #politicalPrisoner of #Russia, a #happyBirthday! (Oct 10) #Ukraine\n\n"));
         assert!(p.contains("like I did:\n\nADDR\n\nLearn more about Georgiy Azat'yan:\n"));
         assert!(p.ends_with("?q=%D0%90%D0%B7%D0%B0%D1%82%D1%8C%D1%8F%D0%BD+%D0%93%D0%B5%D0%BE%D1%80%D0%B3%D0%B8%D0%B9+%D0%A1%D0%B0%D0%BC%D0%B2%D0%B5%D0%BB%D0%BE%D0%B2%D0%B8%D1%87"));
+    }
+
+    fn post_for(name: &str) -> String {
+        let r = Row {
+            month: 1,
+            day: 2,
+            name: name.into(),
+            ukraine: false,
+        };
+        compose_post(&r, "ADDR")
+    }
+
+    #[test]
+    fn post_without_patronymic() {
+        let p = post_for("Азатьян Георгий");
+        assert!(p.starts_with("Join me and wish Georgiy Azat'yan, #politicalPrisoner"));
+        assert!(p.contains("Learn more about Georgiy Azat'yan:\n"));
+    }
+
+    #[test]
+    fn post_single_word_name() {
+        let p = post_for("Азатьян");
+        assert!(p.starts_with("Join me and wish Azat'yan, #politicalPrisoner"));
+        assert!(p.contains("Learn more about Azat'yan:\n"));
+    }
+
+    #[test]
+    fn post_patronymic_initial_translit() {
+        let p = post_for("Щёлоков Юрий Щербакович");
+        assert!(p.starts_with("Join me and wish Yuriy S. Schyolokov, #politicalPrisoner"));
+        let p = post_for("Иванов Иван Юрьевич");
+        assert!(p.starts_with("Join me and wish Ivan Y. Ivanov, #politicalPrisoner"));
+        assert!(p.contains("Learn more about Ivan Ivanov:\n"));
     }
 }
