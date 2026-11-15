@@ -3,7 +3,7 @@ use std::time::{Duration, SystemTime};
 pub const MIN_X: Duration = Duration::from_secs(3600);
 pub const MAX_X: Duration = Duration::from_secs(86400);
 pub const DEFAULT_X: Duration = Duration::from_secs(6 * 3600);
-const WEEK: u64 = 7 * 86400;
+const WEEK: u64 = 5 * 86400;
 const MIN_LEAD: Duration = Duration::from_secs(5 * 60);
 
 /// Spread all postcards still to be published (scheduled + about to be
